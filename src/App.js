@@ -1,160 +1,196 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-// https://s3.amazonaws.com/freecodecamp/drums/Heater-1.mp3
-// https://s3.amazonaws.com/freecodecamp/drums/Heater-2.mp3
-// https://s3.amazonaws.com/freecodecamp/drums/Heater-3.mp3
-// https://s3.amazonaws.com/freecodecamp/drums/Heater-4_1.mp3
-// https://s3.amazonaws.com/freecodecamp/drums/Heater-6.mp3
-// https://s3.amazonaws.com/freecodecamp/drums/Dsc_Oh.mp3
-// https://s3.amazonaws.com/freecodecamp/drums/Kick_n_Hat.mp3
-// https://s3.amazonaws.com/freecodecamp/drums/RP4_KICK_1.mp3
-// https://s3.amazonaws.com/freecodecamp/drums/Cev_H2.mp3
-
-const keyDownHander = (e) => {
-  switch (e.code) {
-    case 'KeyQ':
-      document.getElementById(buttons[0].id).click();
-      break;
-    case 'KeyW':
-      document.getElementById(buttons[1].id).click();
-      break;
-    case 'KeyE':
-      document.getElementById(buttons[2].id).click();
-      break;
-    case 'KeyA':
-      document.getElementById(buttons[3].id).click();
-      break;
-    case 'KeyS':
-      document.getElementById(buttons[4].id).click();
-      break;
-    case 'KeyD':
-      document.getElementById(buttons[5].id).click();
-      break;
-    case 'KeyZ':
-      document.getElementById(buttons[6].id).click();
-      break;
-    case 'KeyX':
-      document.getElementById(buttons[7].id).click();
-      break;
-    case 'KeyC':
-      document.getElementById(buttons[8].id).click();
-      break;
-
-    default:
-      break;
-  }
-};
-const buttons = [
-  {
-    id: 'Heater-1',
-    name: 'q',
-    sound: '1'
-  },
-  {
-    id: 'Heater-2',
-    name: 'w',
-    sound: '2'
-  },
-  {
-    id: 'Heater-3',
-    name: 'e',
-    sound: '2'
-  },
-  {
-    id: 'Heater-4_1',
-    name: 'a',
-    sound: '2'
-  },
-  {
-    id: 'Heater-6',
-    name: 's',
-    sound: '2'
-  },
-  {
-    id: 'Dsc_Oh',
-    name: 'd',
-    sound: '2'
-  },
-  {
-    id: 'Kick_n_Hat',
-    name: 'z',
-    sound: '2'
-  },
-  {
-    id: 'RP4_KICK_1',
-    name: 'x',
-    sound: '2'
-  },
-  {
-    id: 'Cev_H2',
-    name: 'c',
-    sound: '2'
-  }
-];
 function App() {
-  const [soundDisplay, setSoundDisplay] = useState('');
+  const audioRef = useRef();
+
+  //length in minutes
+  const [breakLength, setBreakLength] = useState(0);
+  const [sessionLength, setSessionLength] = useState(25);
+
+  const [timeLeftInSecs, setTimeLeftInSecs] = useState(sessionLength * 60);
+
+  const [alarmType, setAlarmType] = useState('session');
+
+  // const [minsLeft, setMinsLeft] = useState(0);
+  // const [secsLeft, setSecsLeft] = useState(0);
+
+  const [timerStarted, setTimerStarted] = useState(false);
+
+  const [timerInternal, setTimerInternal] = useState(null);
 
   useEffect(() => {
-    document.addEventListener('keydown', keyDownHander);
-
-    return () => {
-      document.removeEventListener('keydown', keyDownHander);
-    };
+    setBreakLength(5);
   }, []);
 
-  const handleClick = (e, b) => {
-    e.target.style.backgroundColor = 'orange';
-    const sound = document.getElementById(b.name.toUpperCase());
-    sound.currentTime = 0;
-    sound.play();
-    setSoundDisplay(b.id.replace(/-/g, ' '));
-    setTimeout(() => (e.target.style.backgroundColor = 'lightgray'), 100);
+  useEffect(() => {
+    if (alarmType === 'session') {
+      setTimeLeftInSecs(sessionLength * 60);
+    } else {
+      setTimeLeftInSecs(breakLength * 60);
+    }
+  }, [alarmType, breakLength, sessionLength]);
+
+  useEffect(() => {
+    if (timeLeftInSecs === 0 && alarmType === 'session') {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+      clearInterval(timerInternal);
+      setTimerInternal(null);
+      setAlarmType('break');
+      setTimerInternal(setInterval(getTimer, 1000));
+    } else if (timeLeftInSecs === 0 && alarmType === 'break') {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+      clearInterval(timerInternal);
+      setTimerInternal(null);
+      setAlarmType('session');
+      setTimerInternal(setInterval(getTimer, 1000));
+    }
+
+    // const min = Math.floor(timeLeftInSecs / 60);
+    // const secs = timeLeftInSecs % 60;
+    // setMinsLeft(min);
+    // setSecsLeft(secs);
+  }, [alarmType, timeLeftInSecs, timerInternal]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const getTimer = () => {
+    // if (alarmType === 'session') {
+    //   let currentTime = timeLeftInSecs;
+    //   let nextTime = currentTime - 1;
+
+    //   if (nextTime === 0) {
+    //     audioRef.current.play();
+    //     setAlarmType('break');
+    //   } else {
+    setTimeLeftInSecs((prev) => prev - 1);
+    audioRef.current.pause();
+    //   // }
+    // } else if (alarmType === 'break') {
+    //   let currentTime = timeLeftInSecs;
+    //   let nextTime = currentTime - 1;
+
+    //   if (nextTime === 0) {
+    // audioRef.current.play();
+    // setAlarmType('Timer Finished');
+    //   } else {
+    //     setTimeLeftInSecs((prev) => prev - 1);
+    //   }
+    // }
+  };
+
+  const startHandler = () => {
+    if (timerStarted) {
+      setTimerStarted(false);
+      clearInterval(timerInternal);
+      setTimerInternal(null);
+    } else {
+      setTimerStarted(true);
+      setTimerInternal(setInterval(getTimer, 1000));
+    }
+  };
+
+  const getDecrement = (prev) => {
+    if (prev - 1 <= 0) {
+      return prev;
+    } else {
+      return prev - 1;
+    }
+  };
+  const getIncrement = (prev) => {
+    if (prev + 1 > 60) {
+      return prev;
+    } else {
+      return prev + 1;
+    }
+  };
+
+  const resetTimer = () => {
+    setAlarmType('session');
+    clearInterval(timerInternal);
+    setTimerInternal(null);
+    setBreakLength(5);
+    setSessionLength(25);
+    setTimeLeftInSecs(25 * 60);
+    setTimerStarted(false);
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+  };
+  const clockFormat = () => {
+    let min = Math.floor(timeLeftInSecs / 60);
+    let secs = timeLeftInSecs - min * 60;
+    min = min < 10 ? '0' + min : min;
+    secs = secs < 10 ? '0' + secs : secs;
+    return min + ':' + secs;
+    //  minsLeft < 10 ? 0minsLeft : minsLeft :
+    // secsLeft < 10 ? `0${secsLeft}` : secsLeft
   };
 
   return (
-    <div
-      className="d-flex justify-content-center align-items-center"
-      style={{ paddingTop: '20vh' }}
-    >
-      <div id="drum-machine" className="d-flex">
-        <div className="d-flex flex-wrap">
-          {buttons.map((b, i) => (
-            <button
-              style={{
-                flex: '0 0 30%',
-                aspectRatio: '1/1',
-                margin: '0.1rem',
-                backgroundColor: 'lightgray'
-              }}
-              key={i}
-              id={b.id}
-              className="drum-pad"
-              onClick={(e) => handleClick(e, b)}
-            >
-              <audio
-                className="clip"
-                id={b.name.toUpperCase()}
-                src={`https://s3.amazonaws.com/freecodecamp/drums/${b.id}.mp3`}
-              />
-              {b.name.toUpperCase()}
-            </button>
-          ))}
-        </div>
-        <div className="d-flex justify-content-center align-items-center">
-          <p
-            style={{
-              textAlign: 'center',
-              minWidth: '100px',
-              border: '1px solid black',
-              padding: '5px'
-            }}
-            id="display"
+    <>
+      <div>
+        <div>
+          <button
+            id="break-decrement"
+            onClick={() => setBreakLength(getDecrement(breakLength))}
+            disabled={timerStarted}
           >
-            {soundDisplay}
-          </p>
+            -
+          </button>
+          <span id="break-label">
+            Break Length
+            <span id="break-length">{breakLength}</span>
+          </span>
+          <button
+            id="break-increment"
+            onClick={() => setBreakLength(getIncrement(breakLength))}
+            disabled={timerStarted}
+          >
+            +
+          </button>
+        </div>
+        <div>
+          <button
+            id="session-decrement"
+            onClick={() => setSessionLength(getDecrement(sessionLength))}
+            disabled={timerStarted}
+          >
+            -
+          </button>
+
+          <span id="session-label">
+            Session Length<span id="session-length">{sessionLength}</span>
+          </span>
+          <button
+            id="session-increment"
+            onClick={() => setSessionLength(getIncrement(sessionLength))}
+            disabled={timerStarted}
+          >
+            +
+          </button>
         </div>
       </div>
-    </div>
+      <div id="timer-label">
+        {alarmType.charAt(0).toUpperCase() + alarmType.slice(1)}
+
+        <div id="time-left">{clockFormat()} </div>
+        {/* {minsLeft < 10 ? `0${minsLeft}` : minsLeft} :
+          {secsLeft < 10 ? `0${secsLeft}` : secsLeft} */}
+
+        <button id="start_stop" onClick={startHandler}>
+          {timerStarted ? 'pause' : 'start'}
+        </button>
+        <button id="reset" onClick={resetTimer}>
+          reset
+        </button>
+      </div>
+      <audio
+        id="beep"
+        preload="auto"
+        ref={audioRef}
+        src="https://raw.githubusercontent.com/freeCodeCamp/cdn/master/build/testable-projects-fcc/audio/BeepSound.wav"
+      />
+    </>
   );
 }
 
